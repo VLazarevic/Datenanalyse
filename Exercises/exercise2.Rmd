@@ -1,0 +1,171 @@
+---
+title: "Exercise 2"
+subtitle: "for Data Analysis"
+author: "Valentino Lazarevic - 1223211"
+date: "19.03.2024"
+output: pdf_document
+---
+# Setup
+```{r message=FALSE, warning=FALSE}
+library(nycflights13)
+library(car)
+library(dplyr)
+library(ggplot2)
+data("flights")
+attach(flights)
+```
+
+# Exercise 1
+## Show air_time in a histogram with relative frequencies, and plot on top of the histogram the density estimate. What do you see?
+
+### We can see that the density line is smoothly following the bars of the histogram, specifying that the density curve represents the flight durations distribution
+```{r example_one, echo=FALSE, fig.align = 'center'}
+hist(na.omit(air_time), freq = FALSE, main = "Histogram of Air Time with Density", xlab = "Air Time (minutes)", breaks = "freedman-diaconis")
+lines(density(air_time, na.rm = TRUE), lwd = 2, col = "red")
+```
+
+# Exercise 2
+## Do the same as in 1. for the variable distance. What do you see?
+
+### We can see that the density line is not following the bars of the histogram, even if we change the bandwidth of the histogramm. It is leading to an over smoothing effect which not represent the underlying patterns.
+```{r example_two, echo=FALSE, fig.align = 'center'}
+hist(na.omit(distance), freq = FALSE, main = "Histogram of Distance with Density (Bandwidth = 20)", xlab = "Distance (miles)", breaks = "freedman-diaconis")
+lines(density(distance, bw = 20, na.rm = TRUE), lwd = 2, col = "red")
+
+hist(na.omit(distance), freq = FALSE, main = "Histogram of Distance with Density (Bandwidth = 100)", xlab = "Distance (miles)", breaks = "freedman-diaconis")
+lines(density(distance, bw = 100, na.rm = TRUE), lwd = 2, col = "red")
+```
+
+# Exercise 3 
+## Compare the empirical distribution function for air_time and distance with the function ecdf(). Try to plot the two functions on top of each other. Since the scale is very different, you should first try to normalize the variables appropriately. Which conclusions can you draw?
+
+### We can conclude a strong relationship between air_time and disatnce when using the Min-Max Normalization.  
+```{r example_three-one, echo=FALSE, fig.align = 'center'}
+normalized_air_time <- (air_time - min(air_time)) / (max(air_time) - min(air_time))
+normalized_distance <- (distance - min(distance)) / (max(distance) - min(distance))
+
+normalized_air_time <- air_time / max(air_time, na.rm = TRUE)
+normalized_distance <- distance / max(distance, na.rm = TRUE)
+plot(ecdf(normalized_air_time), main = "Empirical Distribution Function Comparison - Min-Max Normalized",
+     xlab = "Scaled Values (0 to 1)", ylab = "Empirical Probability",
+     col = "red", xlim = c(0, 1))
+lines(ecdf(normalized_distance), col = "blue")
+legend("bottomright", legend = c("Air Time", "Distance"), col = c("red", "blue"), lty = 1)
+```
+
+### We can conclude that the lines are shaped very much alike but the distance curve is shifted to the right because the disatnce data has a far wider range than the data of air_time when using Logarithmic-Scale Normalization. 
+```{r example_three-two, echo=FALSE, fig.align = 'center'}
+
+plot(ecdf(log(air_time)), main = "Empirical Distribution Function Comparison - Logarithmic-Scale",
+     xlab = "Normalized Values", ylab = "Cumulative Probability",
+     col = "red", xlim = c(0, 10))
+lines(ecdf(log(distance)), col = "blue")
+
+legend("bottomright", legend = c("Air Time", "Distance"), col = c("red", "blue"), lty = 1)
+```
+
+# Exercise 4
+## Use the function qqPlot() of the package car, and check if the number of flights is uniformly distributed over the months (1–12). Do the same for the days (1–31).
+
+### The strong left tail of both plots indicates the presence of outliers or extreme values that are significantly lower than the majority of the data points, which would lead to the conclusion that our data deviate from a uniform distribution, but further testing is needed to determine whether to make a more accurate statement
+```{r example_four, echo=FALSE, fig.align = 'center'}
+qqPlot(table(month), distribution = "unif", col = "red", main = "QQ Plot of Flights per Month",
+       xlab = "uniformly distributed quantiles", ylab = "Flights by Day")
+qqPlot(table(day), distribution = "unif", col = "red", main = "QQ Plot of Flights per Day",
+       xlab = "uniformly distributed quantiles", ylab = "Flights by Month")
+```
+
+# Exercise 5
+## Similar as before: Check if the number of flights to the different destinations follows a normal, log-normal, or exponential distribution.
+
+### Given a distribution, the data is likely to be exponentially distributed, since both the normal and lognormal distributions deviate from base.
+```{r example_five, echo=FALSE, fig.align = 'center'}
+qqPlot(table(dest), distribution = "norm", main = "Quantile-Quantile Plot for Flights to Destinations - Nomral",
+       xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", col = "purple")
+
+qqPlot(table(dest), distribution = "lnorm", main = "Quantile-Quantile Plot for Flights to Destinations - Log-Normal",
+       xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", col = "purple")
+
+qqPlot(table(dest), distribution = "exp", main = "Quantile-Quantile Plot for Flights to Destinations - Exponential",
+       xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", col = "purple")
+```
+
+# Exercise 6
+## Compare the departure times of the carriers AA and WN in a QQ-plot by usimg the function qqplot(). What can you conclude?
+
+### The clear similarity between the data points and the reference line indicates that the two airlines have similar distributions of departure times. Nonetheless, the number of 5:00 o'clock flights is still small, resulting in the behavior observed on the left in the Q-Q plot, as there is not enough data to draw insightful conclusions. 
+```{r example_six, echo=FALSE, fig.align = 'center'}
+aa_departure <- flights %>%
+  filter(carrier == "AA") %>%
+  pull(dep_time)
+
+wn_departure <- flights %>%
+  filter(carrier == "WN") %>%
+  pull(dep_time)
+
+qqplot(aa_departure, wn_departure, main = "Quantile-Quantile Plot for Departure Times (AA vs WN)", col="green",
+       xlab = "Quantiles (AA) Departure Times", ylab = "Quantiles (WN) Departure Times")
+
+abline(0, 1, col="orange")
+```
+
+# Exercise 7 
+## Do the same as in 6. “by hand”. I.e., plot the quantiles of the departure time of carrier AA versus those of carrier WN.
+## Hint: Use the function quantile()
+
+```{r example_seven, echo=FALSE, fig.align = 'center'}
+quantile_aa <- quantile(aa_departure, probs = seq(0, 1, by = 0.01), na.rm = TRUE)
+quantile_wn <- quantile(wn_departure, probs = seq(0, 1, by = 0.01), na.rm = TRUE)
+
+plot(quantile_aa, quantile_wn, main = "Manual Quantile-Quantile Plot for Departure Times (AA vs WN)",
+     xlab = "Quantiles (AA) Departure Times", ylab = "Quantiles (WN) Departure Times", col = "green")
+
+abline(0, 1, col="orange")
+```
+
+# Exercise 8
+## Show the density estimate of the arrival delay. Cut the x-range in the plot to just focus on the main part of the distribution. Show on top of that by differently colored lines the density estimates for the single main carriers (with at least 1000 flights). What can you conclude?
+
+### Unusually, most flights are not only on time, but even faster than expected. This could be for a variety of reasons, such as client experience or an overall conservative approach to estimating flight times.
+```{r example_eight, echo=FALSE, fig.align = 'center'}
+main_carriers <- names(table(carrier)[table(carrier) >= 1000])
+
+flights_carriers <- subset(flights, carrier %in% main_carriers)
+
+density <- density(flights_carriers$arr_delay, na.rm = TRUE)
+
+plot(density, xlim = c(-100, 250), ylim = c(0,0.03), main = "Density Estimate of Arrival Delay",
+     xlab = "Arrival Delay (minutes)", ylab = "Density", type = "n")
+
+colors <- rainbow(length(main_carriers))
+for (i in seq_along(main_carriers)) {
+  carrier_flights <- flights_carriers[flights_carriers$carrier == main_carriers[i],]
+  density <- density(carrier_flights$arr_delay, na.rm = TRUE)
+  lines(density, col = colors[i], lwd = 2)
+}
+legend("topright", legend = c("All", main_carriers), col = c("black", colors),lwd = 2)
+
+```
+
+# Exercise 9
+## Do the same as in 8., but with QQ-plots (comparing with quantiles of the normal distribution).
+
+### We can clearly see, that all shown carriers have almost the same right-skew
+
+```{r example_nine, echo=FALSE, fig.align = 'center'}
+carriers_high_frequency <- names(which(table(flights$carrier) >= 1000))
+colors <- rainbow(length(carriers_high_frequency))
+
+prepared_flights_data <- flights %>%
+  filter(carrier %in% carriers_high_frequency) %>%
+  filter(is.finite(arr_delay)) %>%
+  select(carrier, arr_delay)
+
+ggplot(prepared_flights_data, aes(sample = arr_delay)) +
+  stat_qq(aes(color = carrier)) +
+  geom_abline(slope = 1, intercept = 0) +
+  labs(title = "Overlayed QQ Plots of Arrival Delays by Carrier",
+       y = "Arrival Delays Quantiles",
+       x = "Theoretical Quantiles") +
+  scale_color_manual(values = colors) + theme_minimal()
+```
