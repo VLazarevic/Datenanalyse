@@ -1,0 +1,207 @@
+---
+title: "Exercise 3"
+subtitle: "for Data Analysis"
+author: "Valentino Lazarevic - 1223211"
+date: "09.04.2024"
+output: pdf_document
+---
+# Setup
+```{r message=FALSE, warning=FALSE}
+library(nycflights13)
+data("flights")
+attach(flights)
+
+library(laeken)
+data(eusilc)
+attach(eusilc)
+library(DescTools)
+```
+
+# Exercise 1
+## Investigate by parallel boxplots if you can identify any tendency in the arrival delays concerning the hour of the day. What can you conclude? 
+## Hint: The plots are heavily dominated by the outliers, and thus you might not want to show them.
+
+### Throughout the day, flight patterns reveal intriguing shifts. Departures commence at 7 am, reaching a peak at 21 pm. Between 5 and 11 am, consistency in interquartile ranges (IQRs) suggests stable performance. However, post-11 am, the IQR lengthens, especially in upper quartiles, indicating increased positive arrival delays. This trend peaks at 21 pm, aligning with the longest IQR and the largest median. Notably, whiskers extend significantly after 11 am, reflecting heightened variability in delays. Surprisingly, lower quartiles exhibit consistent departure delays, regardless of the hour, ranging from -10 to -20 minutes.
+
+### As the day progresses, both median departure times and IQRs expand, signifying escalating delays. This trend likely results from mounting air and airport traffic, leading to congestion-induced delays peaking at 21:00. Subsequent reduction in flight volume post-peak corresponds with decreased congestion and lower delays.
+```{r example_one, echo=FALSE, fig.align = 'center'}
+flights_arr_delay_hour <- flights$arr_delay~flights$hour
+
+boxplot(
+  flights_arr_delay_hour,
+  outline = FALSE,
+  main = "Boxplot (arrival delays by hours)",
+  xlab = "Hours",
+  ylab  = "Arrival Delay (minutes)"
+)
+```
+
+# Exercise 2
+## Same as in 1., but for the different months.
+
+### Examining monthly flight data unveils intriguing variations. Initially, January and February exhibit uniform boxplot characteristics, suggesting consistency. However, March stands out with a smaller median arrival delay yet longer interquartile range and upper quartile length. June and July, despite similar median values to winter months, feature notably extended upper quartiles and whiskers, indicating significant variability in arrival times. Conversely, September boasts the smallest median and interquartile range, hinting at predictably smooth operations. December, paradoxically, experiences higher arrival delays compared to other winter months.
+
+### Interestingly, despite comparable data volumes across months, April, June, July, and December emerge as distinctive outliers. Weather conditions emerge as a potential explanation, with December's snow, June and July's heat, and April's rain likely influencing arrival delays. However, further analysis correlating weather data with flight delays is necessary to validate these hypotheses.
+```{r example_two, echo=FALSE, fig.align = 'center'}
+flights_arr_delay_month <- flights$arr_delay~flights$month
+
+boxplot(
+  flights_arr_delay_month,
+  outline = FALSE,
+  main = "Boxplot (arrival delays by months)",
+  xlab = "Months",
+  ylab  = "Arrival Delay (minutes)"
+)
+```
+
+# Exercise 3 
+## Same as in 1., but for the different days of the month December.
+
+### Analyzing December flight data reveals intriguing patterns, particularly around the holiday season. Higher arrival delays on key dates such as the 22nd, 23rd, and 29th align with expectations, possibly due to increased baggage from holiday travel. Conversely, lighter and faster travel is anticipated on workdays throughout the month.
+
+### However, understanding delays in the first half of December poses challenges, as they do not seem to correlate with typical traffic patterns inferred from the histogram. The heightened delays on the 5th may stem from Thanksgiving holiday returns.
+
+### Notably, certain dates—5th, 8th, 9th, 10th, 14th, 17th, 22nd, and 23rd—stand out with significantly higher median arrival delays and longer interquartile ranges, indicating a wider range of delays. These outliers suggest an expectation of more extreme arrival delays on these dates.
+```{r example_three-one, echo=FALSE, fig.align = 'center'}
+december_flights <-  subset(flights, flights$month == 12)
+flights_arr_delay_day <- december_flights$arr_delay~december_flights$day
+
+boxplot(
+  flights_arr_delay_day,
+  outline = FALSE,
+  main = "Boxplot (arrival delays by days in december)",
+  xlab = "Days in December",
+  ylab  = "Arrival Delay (minutes)"
+)
+```
+
+# Exercise 4
+## Show parallel boxplots with notches for the departure delays of the different carriers. Sort the boxplots according to increasing values of the medians. What can you conclude? Is there a substantial (“significant”?) difference in the median departure delays of the carriers?
+
+### Analyzing carrier performance via boxplots reveals intriguing insights. Notably, some carriers' notches extend beyond hinges, potentially skewing median-based confidence intervals. For instance, "OO" exhibits the lowest median departure delay, around -6 minutes, with fewer outliers indicated by smaller whiskers. Conversely, "WN" shows the highest median at approximately -2 minutes. While median delays show little difference among carriers, variations emerge in upper whisker lengths. For example, "YV" displays longer upper whiskers, suggesting more extreme departure delays compared to "WN" or "VX."
+
+### Interestingly, neighboring carriers often share similar median values, as indicated by non-overlapping confidence intervals. However, significant differences emerge when comparing carriers positioned at different ends of the plot. Additionally, utilizing a barplot to visualize the number of flights per carrier illustrates how tighter notches, representing confidence intervals, correspond with increasing data points.
+```{r example_four, echo=FALSE, fig.align = 'center', , warning=FALSE}
+ordered_carrier_data <- with(flights, reorder(flights$carrier, flights$dep_delay, median, na.rm = TRUE))
+
+boxplot(
+  flights$dep_delay~ordered_carrier_data,
+  outline = FALSE,
+  notch = TRUE,
+  main = "Boxplot (departure delays by carriers)",
+  xlab = "Carriers",
+  ylab = "Departure Delay (minutes)"
+)
+```
+
+# Exercise 5
+## We are interested in the variable hy040n (income from rental of a property or land). Can you see income differences for the different Austrian federal states (variable db040)? Try to find an answer by using parallel boxplots, as well as by location/scale estimators.
+
+### When examining the boxplots, it becomes apparent that the majority of households do not earn any income from renting property or land. Across all federal states, the median income from this source is 0. Employing q0.95 as an estimator, we find that only a minority, approximately 5 percent of households in certain federal states, derive income from rental properties or land. However, analyzing mean household incomes by federal state reveals that households in "Burgenland" have the highest income from rentals.
+```{r example_five, echo=FALSE, fig.align = 'center'}
+boxplot(
+  eusilc$hy040n~eusilc$db040,
+  outline = TRUE,
+  main = "Boxplot (income from rental)",
+  ylab = "Incom from Rental (net)",
+  xlab = "",
+  xaxt = "n"
+)
+title(xlab = "Federal State of Austria", mgp = c(4, 1, 0))
+
+axis(1, at=c(1:9), labels=levels(eusilc$db040), cex.axis=0.75,las = 3)
+```
+
+# Exercise 6
+## Compare in a simple plot again the Austrian federal states for males in the age between 55 and 59 years the proportion of retired persons (pl030==5) with the proportion of persons receiving old-age benetits (py100n>0). Which federal states deviate? Show the results for the females for the same age group in the same plot.
+
+### Interpreting the data requires caution due to various constraints, notably the narrow age range of 55-59, resulting in a limited dataset, particularly when stratified by federal state. For instance, in Burgenland, all metrics exhibit overlap, likely due to a small sample size.
+
+### Across most regions, the number of individuals receiving old-age benefits aligns closely with the number of retirees. However, disparities emerge, such as in Tyrol, where fewer men receive benefits, possibly due to exceeding eligibility thresholds based on wealth. Additionally, more women tend to be retired than men in many states, with Vorarlberg being the only exception, where more women receive benefits than are retired.
+
+### Examining males separately reveals that, except for Vienna, the number of retirees equals or exceeds those receiving benefits. This pattern holds true for females across all regions. Notably, Lower and Upper Austria stand out, with twice the number of retirees or benefit recipients compared to other federal states. However, to gain a clearer understanding, it's essential to normalize these numbers based on the total population of older individuals.
+```{r example_six, echo=FALSE, fig.align = 'center'}
+men <- subset(eusilc, age >= 55 & age <= 59 & rb090 == "male")
+women <- subset(eusilc, age >= 55 & age <= 59 & rb090 == "female")
+
+men_agg <- aggregate(rb030~db040, data = men, FUN = length)
+women_agg <- aggregate(rb030~db040, data = women, FUN = length)
+
+men_agg_ret <- aggregate(rb030~db040, data = men[men$pl030 == 5, ], FUN = length)
+men_agg_age <- aggregate(rb030~db040, data = men[men$py100n > 0, ], FUN = length)
+
+women_agg_ret <- aggregate(rb030~db040, data = women[women$pl030 == 5, ], FUN = length)
+women_agg_age <- aggregate(rb030~db040, data = women[women$py100n > 0, ], FUN = length)
+
+dataset <- data.frame(
+  state = levels(rbind(men, women)$db040),
+  men_ret = men_agg_ret$rb030/men_agg$rb030,
+  men_age = men_agg_age$rb030/men_agg$rb030,
+  women_ret = women_agg_ret$rb030/women_agg$rb030,
+  women_age = women_agg_age$rb030/women_agg$rb030
+)
+
+dataset_matrix <- as.matrix(dataset[, -1])
+rownames(dataset_matrix) <- dataset$state
+par(mar = c(6, 4, 4, 2))
+
+col <- c(rgb(0,0.2,1,0.7), rgb(0,0.2,1,0.3), rgb(1,0,1,0.7), rgb(1,0,1,0.3))
+
+barplot(t(dataset_matrix),beside = TRUE,
+        main = "Probability by Federal State", xlab = "",
+        ylab = "Probability", col = col,
+        las = 3)
+title(xlab = "Federal State of Austria", mgp = c(5, 1, 0))
+legend("topright", legend = c("Male Retired", "Male Benefits", "Female Retired", "Female Benefits"),
+       fill = col)
+```
+
+# Exercise 7 
+## Focus again on the age group from 55 to 59 years, and on all persons receiving old-age benefits. Present the Lorenz curve for males, separately for the different federal states, and do the same for the females. Compare the corresponding Gini values for males and females in the different federal states. What do the plots and values show? Are the income distributions balanced among the federal states and across the genders?
+## Hint: The R package DescTools provides the function Lc() to compute the Lorenz curve. The result can be plotted, and it also contains the Gini coefficient.
+
+### The Lorenz curve illustrates income distribution cumulatively across the population, compared to the line of perfect equality (y = x). The Gini coefficient measures inequality by comparing the area between the Lorenz curve and the line of perfect equality to the total area below the latter, with 0 indicating perfect equality and 1 perfect inequality.
+
+### Typically, male and female Lorenz curves closely resemble each other across states, with Gini values ranging between 0.2 and 0.4, indicating moderate inequality. However, two outliers exist: Burgenland, where male income inequality is notably higher at 0.6, likely due to a small sample size; and Vorarlberg, where female income is twice that of males, possibly also influenced by sample size discrepancies.
+```{r example_seven, echo=FALSE, fig.align = 'center'}
+person_benefits <- subset(rbind(men, women), rbind(men, women)$py100n > 0)
+
+person_benefits$spec_group <- interaction(person_benefits$db040, person_benefits$rb090)
+
+col_men <- rainbow(9, alpha = 0.7)
+col_women <- rainbow(9, alpha = 0.4)
+
+plot(Lc(person_benefits$py100n ~ (person_benefits$spec_group)),
+     col=union(col_men, col_women))
+
+```
+
+```{r example_seven_one, echo=FALSE, fig.align = 'center'}
+par(xpd=TRUE)
+plot(NULL,xlim=c(0,1),ylim=c(0,1),main="Legend of Exercise 7", xaxt="n",yaxt="n",bty="n", xlab="", ylab="")
+legend( "bottomleft", legend = levels(person_benefits$spec_group)[1:9], col = col_men, pch=16, title = "Male/State")
+legend( "bottomright",legend = levels(person_benefits$spec_group)[10:18], col = col_women, pch=16, title = "Female/State")
+```
+
+
+# Exercise 8
+## Use the same data as in 8., but show them with parallel notched boxplots for the different federal states and genders. What do you conclude?
+
+### The correlation between this boxplot and the previously discussed Lorenz curves isn't entirely clear. While certain observations, such as a large interquartile range (IQR), typically align with higher Gini values and greater inequality, as seen in males from Burgenland or females from Vorarlberg, a small IQR doesn't necessarily indicate a lower Gini value compared to other states. This discrepancy might stem from unaccounted outliers or the small sample size, influencing the interpretation.
+```{r example_eight, echo=FALSE, fig.align = 'center', warning=FALSE}
+par(mar = c(9,6,4,2) + 0.1, mgp = c(5,1,0))
+
+boxplot(person_benefits$py100n~person_benefits$spec_group, outline = FALSE,
+        col = ifelse(grepl("female", levels(person_benefits$spec_group)), rgb(1,0,1,0.7), rgb(0,0.2,1,0.7)),
+        main = "Boxplot (old age benefits by state and gender)", xlab = "",
+        ylab = "Income", xaxt="n", notch = TRUE
+)
+
+
+legend("topright", legend = c("Male", "Female"), fill = c(rgb(0,0.2,1,0.7), rgb(1,0,1,0.7)))
+
+state <- strsplit(levels(person_benefits$spec_group), ".")[[1]]
+axis(1,at=1:length(levels(person_benefits$spec_group)), labels = levels(person_benefits$spec_group),las=3)
+
+
+```
