@@ -1,0 +1,141 @@
+---
+title: "Exercise 5"
+subtitle: "for Data Analysis"
+author: "Valentino Lazarevic - 1223211"
+date: "23.04.2024"
+output: pdf_document
+---
+# Setup
+```{r message=FALSE, warning=FALSE}
+setwd("/Users/valentino/Documents/Studium/Semester 4/Datenanalyse/Exercises/exercise5")
+
+Diamonds = read.csv("Diamonds.csv") 
+library(robustHD)
+
+data(TopGear) 
+library(mblm) 
+library(robustbase)
+```
+
+# Exercise 1 - 5
+## Use the data set TopGear, included in the R package robustHD. The data set contains information on various characteristics of cars featured on the website of the BBC television show Top Gear. There are 297 observations, but some have missing values. We want to predict the logarithm of Price from the variable MPG. Plot log-Price versus MPG and draw into the plot the regression lines of the following methods:
+## 1. LS-regression (lm())
+## 2. Tukey line (line())
+## 3. Siegel regression (mblm() from the package mblm)
+## 4. LTS regression (ltsReg() from the package robustbase) 
+## 5. MM regression (lmrob() from the package robustbase)
+## Draw briefly general conclusions of the results.
+
+### The standard Least Squares regression is heavily influenced by outlier leverage points, while robust methods like Tukey and MM-regression align more closely. Siegel and LTS regression exhibit flatter slopes, possibly due to a greater density of data points at lower prices for Siegel, and LTS filtering out both leverage and vertical outliers. The plot depicts a negative linear relationship between combined fuel consumption (MPG) and the logarithm of the list price in UK pounds, indicating that higher-priced vehicles tend to have lower fuel consumption.
+
+```{r example_one_to_five, echo=FALSE, fig.align = 'center'}
+topgear <- subset(TopGear, !is.na(MPG) & !is.na(Price))
+topgear$PriceLog <- log(topgear$Price) 
+
+plot(topgear$MPG ~ topgear$PriceLog, xlab = "MPG", main = "Price per MPG",
+     ylab = "Price in log", ylim = c(0, 100)
+)
+
+abline(lm(topgear$MPG ~ topgear$PriceLog), col = "red") 
+abline(line(topgear$MPG ~ topgear$PriceLog), col = "blue") 
+abline(mblm(MPG ~ PriceLog, data = topgear), col = "purple") 
+abline(ltsReg(topgear$MPG ~ topgear$PriceLog), col = "green") 
+abline(lmrob(topgear$MPG ~ topgear$PriceLog), col = "orange")
+
+legend("topright", legend = c("LS regression", "Tukey line", "Siegel regression", "LTS regression", "MM regression"), col = c("red", "blue", "purple", "green", "orange"), lwd = 2)
+```
+
+# Exercise 6
+## Now use all variables of the TopGear data set which are measured on a continuous scale to predict log-Price. First you might want to exclude observations with missings us- ing na.omit(). For estimating the regression parameters, use LS-regression and MM regression.
+## 6. Compare the fitted values yˆi from both estimators. What do you conclude?
+
+### The fitted values from the LS and MM regression models generally follow the same trend, but at higher values, there's a noticeable deviation towards LS fitted values, indicating LS estimates bigger values for larger data points compared to MM regression. This discrepancy is more pronounced considering the fitted values are log-scaled prices, emphasizing larger price differences between regression models at higher price intervals. Despite this, a strong linear relationship between the fitted values from MM and LS regression models is evident in the scatter plot, suggesting they produce very similar results for the logarithm of price in the dataset.
+```{r example_six, echo=FALSE, fig.align = 'center'}
+topgear <- na.omit(TopGear)
+
+ls <- lm(log(Price) ~ ., data = topgear[, sapply(topgear, is.numeric)])
+mm <- lmrob(log(Price) ~ ., data = topgear[, sapply(topgear, is.numeric)])
+
+ls_fitted <- fitted(ls)
+mm_fitted <- fitted(mm)
+
+plot(ls_fitted, mm_fitted, main = "Comparison (LS and MM Fitted Values)", 
+     xlab ="LS Fitted Values", ylab="MM Fitted Values")
+
+plot(mm_fitted, type = "l", col = "orange", main = "Comparison (LS and MM Fitted Values)", 
+     ylab = "MM & LS Fitted Values")
+lines(ls_fitted, type = "l", col = "black")
+legend("topright", legend = c("MM Regression values", "LS Regression values"), col = c("orange", "black"), lwd = 2)
+```
+
+# Exercise 7
+## 7. Compare the outcome of the inference tables (i.e. the p-values in the summary() output). What do you conclude?
+
+### The LS-regression highlights Cylinders, MPG, and Weight as significant features, whereas MM-regression focuses on a smaller set, including BHP, MPG, Weight, and Width, omitting Cylinders. Cylinders are particularly interesting because they are significant for LS but not for MM, possibly due to high cylinder cars acting as leverage points that skew LS results but have little impact on robust methods like MM. Both outputs agree on strong predictors like BHP, MPG, and Weight, while some variables show significance in only one model, indicating potential model sensitivity or contextual influences. Other predictors, such as Displacement and Length, demonstrate no consistent effect across models, suggesting they are weak or inconsistent predictors.
+```{r example_seven, echo=FALSE, fig.align = 'center'}
+summary(ls)
+
+summary(mm)
+```
+
+
+# Exercise 8
+## 8. From MM regression we obtain weights in [0, 1], corresponding to the outlyingness of the observations (list element $rweights). Visualize this information e.g. by two colors (small/larger weight) in a plot of the data frame (=scatterplot matrix) to investigate the reason for the outlyingness.
+
+### The data analysis reveals challenges with extreme values and non-linear relationships. Extreme values in columns like MPG and Weight may be outliers or influential observations, while non-linear relationships, such as between Acceleration and BHP, pose difficulties for linear MM regression models. Moreover, scatterplots indicate varying data spread across the range of variables like Height. The scatterplot matrix suggests inconclusive reasons for extreme outliers, particularly in the extremely high price segment, where other qualities may not justify the price.
+```{r example_aight, echo=FALSE, fig.align = 'center'}
+
+
+topgear_numeric <- TopGear[, c("Price", "Cylinders", "Displacement", "BHP", "Torque", "Acceleration", "TopSpeed", "MPG", "Weight", "Length", "Width", "Height", "Verdict")]
+
+topgear_numeric <- topgear_numeric[complete.cases(topgear_numeric),]
+
+topgear <- topgear_numeric
+topgear$Price <- log(topgear$Price)
+rw <- summary(mm)$rweights
+
+pairs(topgear, gap=1/10, pch = 21, bg = ifelse(rw < 0.001, "orange", "lightblue"))
+```
+
+# Exercise 9
+## Use again the data set Diamonds from last exercise and perform MM regression of Price (after sqrt- or log-transformation) on the remaining variables.
+## 9. Compare the fitted values with those of the response. What do you conclude?
+
+### The sqrt-transformed plot showcases MM-regression's fitted values closely tracking the response data, with a notable deviation appearing only at certain price points. Conversely, the log-transformed plot illustrates a more pronounced discrepancy, particularly with lower prices being overestimated and higher prices underestimated by MM-regression. This underscores the substantial impact of transformation methods on estimation accuracy, with sqrt-transformed prices showing greater promise. This comparison highlights the nuanced relationship between transformation techniques and the success of regression estimation.
+```{r example_nine, echo=FALSE, fig.align = 'center'}
+mm_sqrt <- lmrob(sqrt(Price) ~ ., data = Diamonds)
+mm_log <- lmrob(log(Price) ~ ., data = Diamonds)
+
+plot(mm_sqrt, which = 3,  xaxt = "n", yaxt = "n",
+main = "Fitted vs. Actual sqrt Price", pch = 20, col = "orange") 
+
+abline(0, 1, col = "black")
+
+plot(mm_log, which = 3,  xaxt = "n", yaxt = "n",
+main = "Fitted vs. Actual log Price", pch = 20, col = "orange") 
+
+abline(0, 1, col = "black")
+```
+
+
+# Exercise 10
+## 10. Interpret the output of the inference table.
+
+### It's evident that all factors, except Lab, play a significant role in predicting the price.
+```{r example_ten, echo=FALSE, fig.align = 'center'}
+summary(mm_sqrt)
+
+summary(mm_log)
+```
+
+
+# Exercise 11
+## 11. Use the robustness weights as color information in the scatterplot matrix of the data frame to investigate the reason for the outlyingness.
+
+### The analysis involves examining 16 plots depicting the relationship between four variables and log-transformed and sqrt-transformed prices. While carat exhibits a linear relationship with both transformed prices, outliers occur mainly at high carat and high prices. Although Lab may not influence regression, attention shifts to color and clarity, where outliers appear across all levels but mainly at high prices. Outliers in the dataset are concentrated in the high-price segment, likely serving as detrimental leverage points, particularly evident in diamonds with high clarity and color ratings.
+```{r example_eleven, echo=FALSE, fig.align = 'center'}
+Diamonds$sqrtPrice <- sqrt(Diamonds$Price)
+Diamonds$logPrice <- log(Diamonds$Price)
+dia <- Diamonds[, !names(Diamonds) %in% "Price"]
+pairs(dia, pch = 20, col = ifelse(summary(mm_sqrt)$rweights<0.5, "orange", "lightblue"))
+```
